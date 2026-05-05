@@ -4,7 +4,7 @@
 
 const SF_BASE_URL = "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl";
 const MCP_URL = "https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp";
-const MODEL = "claude-sonnet-4-5";  // adjust if the proxy uses a different model alias
+const MODEL = "claude-sonnet-4-5";
 
 const apiKey = process.env.SF_LLM_KEY;
 if (!apiKey) {

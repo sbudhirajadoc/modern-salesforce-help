@@ -2,7 +2,7 @@
 
 ## Context
 
-Building a VS Code extension that reads editor context (file, language, selection), calls the Anthropic API with an MCP server for Salesforce docs, and renders reformatted help in a sidebar WebviewPanel. No external server, no manual scraping — the Anthropic API calls the MCP tools server-side. Secrets live in VS Code's `context.secrets` API, not settings.json.
+Building a VS Code extension that reads editor context (file, language, selection), calls the Salesforce LLM Gateway Express (OpenAI-compatible) with a manual MCP tool_use loop for Salesforce docs, and renders reformatted help in a sidebar WebviewPanel. No external server, no scraping. Secrets live in VS Code's `context.secrets` API, not settings.json.
 
 ---
 
@@ -15,7 +15,9 @@ Building a VS Code extension that reads editor context (file, language, selectio
 - Base URL: `https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl`
 - Auth: Bearer token from Vibes 2.0 → Agent Harness → Express API Key
 - Protocol: OpenAI-compatible `/chat/completions`
+- Model alias: `claude-sonnet-4-5`
 - Consequence: `mcp_servers` beta param is unavailable; use manual tool_use loop instead
+- **Unverified:** whether `{ role: "system" }` messages are supported — verify in first test run. If rejected, prepend system prompt into first user message instead.
 
 Key stored via `context.secrets.store('sfHelp.llmKey', key)` — never in `settings.json`.
 
@@ -39,7 +41,7 @@ modern-salesforce-help/
     └── src/
         ├── extension.ts          (activate, register command, secrets prompt)
         ├── contextGatherer.ts    (language, selection, surroundingLines, hasSFDX)
-        ├── claudePipeline.ts     (single Anthropic API call with mcp_servers)
+        ├── claudePipeline.ts     (MCP tool discovery + manual tool_use loop → HelpDoc JSON)
         └── webview/
             ├── panel.ts          (create/update WebviewPanel, retainContextWhenHidden)
             ├── webview.html      (CSP shell, nonce injected at runtime)
@@ -52,15 +54,14 @@ modern-salesforce-help/
 
 ```json
 {
-  "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/vscode": "^1.85.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "typescript": "^5.0.0",
     "esbuild": "^0.20.0",
     "@vscode/vsce": "^2.0.0"
@@ -177,6 +178,8 @@ Detect the Salesforce feature they're working with. Search the Salesforce docs f
 
 This is one prompt that handles intent detection, doc search, fetch, and reformatting. No separate normalizer call.
 
+The system prompt is passed as `{ role: "system", content: STYLE_SYSTEM_PROMPT }` — the first message in the array — which is correct for OpenAI-compatible APIs. The JSON output constraint in `prompts/systemPrompt.md` ("Respond with ONLY a single valid JSON object") was written for Claude's `system` parameter but behaves equivalently here. **Verify on first test run that Claude respects the JSON-only constraint** — if it adds preamble or markdown fences, strengthen the instruction in the system message.
+
 ---
 
 ## Claude pipeline (claudePipeline.ts)
@@ -195,6 +198,19 @@ const oaiTools = result.tools.map(t => ({
   type: "function",
   function: { name: t.name, description: t.description, parameters: t.inputSchema },
 }));
+```
+
+### callMcpTool helper
+```ts
+async function callMcpTool(name: string, args: Record<string, unknown>): Promise<string> {
+  const res = await fetch(MCP_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method: "tools/call", params: { name, arguments: args } }),
+  });
+  const json = await res.json();
+  return json.result?.content?.[0]?.text ?? JSON.stringify(json.result);
+}
 ```
 
 ### Phase B — tool_use loop (per query, max 10 iterations)
@@ -348,7 +364,7 @@ npx vsce package         # produces sf-help-copilot-x.x.x.vsix
 Open a workspace containing at least one `.cls` or `.trigger` file (or an `sfdx-project.json`). Without this the extension won't activate.
 
 ### Secrets
-- [ ] On first run, panel prompts for Anthropic API key
+- [ ] On first run, panel prompts for Salesforce LLM Gateway key (from Vibes 2.0 → Agent Harness → Express API Key)
 - [ ] Key persists across VS Code restarts
 - [ ] Key never appears in `settings.json`, workspace storage, or logs
 
@@ -359,7 +375,7 @@ Open a workspace containing at least one `.cls` or `.trigger` file (or an `sfdx-
 ### Pipeline
 - [ ] Select Apex code → right-click → "Generate Salesforce Help" is visible in context menu
 - [ ] Panel opens and shows "Fetching Salesforce help…" immediately
-- [ ] Final render shows all 6 schema sections; empty arrays don't break layout
+- [ ] Final render shows all 7 schema sections including codeExamples; empty arrays don't break layout
 - [ ] Refine input opens pre-filled with detected context
 
 ### Webview
