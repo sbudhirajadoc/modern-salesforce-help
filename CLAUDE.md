@@ -4,7 +4,7 @@ A VS Code extension that reads editor context (active file, language, selected c
 
 ## What this is
 
-A developer-facing "Help Copilot" for Salesforce development. When a developer selects Apex code and invokes the command, the extension reads context, calls the Anthropic API with the Salesforce Docs MCP server attached, and renders a structured help topic in a sidebar WebviewPanel.
+A developer-facing "Help Copilot" for Salesforce development. When a developer selects Apex code and invokes the command, the extension reads context, calls the Salesforce LLM Gateway Express with a manual MCP tool_use loop, and renders a structured help topic in a sidebar WebviewPanel.
 
 ## Current state
 
@@ -18,15 +18,17 @@ Planning complete. Extension not yet scaffolded. Existing files:
 ```
 Extension Host (Node.js inside VS Code)
   ├── contextGatherer.ts     reads file, language, selection, workspace
-  ├── claudePipeline.ts      single Anthropic API call with mcp_servers
+  ├── claudePipeline.ts      MCP tool discovery + manual tool_use loop → HelpDoc JSON
   └── webview/panel.ts       creates/updates the sidebar WebviewPanel
 
-Webview (Electron browser context)
+Webview (Electron browser context, React)
   ├── renders HelpDoc JSON using VS Code theme CSS variables
+  ├── scriptBuilder.ts       generates TTS scripts from HelpDoc
   └── SpeechSynthesis for audio (summary or walkthrough)
 
-Anthropic API (remote)
-  └── Salesforce Docs MCP → https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp
+Salesforce LLM Gateway Express (remote, OpenAI-compatible)
+  └── routes to Claude via Bedrock
+      └── calls Salesforce Docs MCP → https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp
 ```
 
 ## Key technical decisions
@@ -69,8 +71,9 @@ Save plans as `PLAN.md` in this directory. Do not use `~/.claude/plans/`.
 
 ## Open questions
 
-- [ ] Does the Salesforce Docs MCP server require an auth token? (Blocking — must resolve before first pipeline run)
-- [ ] Audio: streaming TTS or section-level only at launch?
+- [x] Does the Salesforce Docs MCP server require an auth token? — No. Resolved.
+- [ ] Does the Salesforce LLM Gateway support `{ role: "system" }` in messages array? — Verify in first test run.
+- [ ] Audio: section-level playback only at launch (streaming deferred).
 - [ ] i18n: which languages to support, if any?
 
 ## References
@@ -79,5 +82,5 @@ Save plans as `PLAN.md` in this directory. Do not use `~/.claude/plans/`.
 - `prompts/systemPrompt.md` — full style rules, read before editing prompts
 - Salesforce Docs MCP: `https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp`
 - VS Code Extension API: https://code.visualstudio.com/api — consult for webview, secrets, activation event patterns
-- Anthropic Node SDK: https://github.com/anthropic-ai/anthropic-sdk-node — consult for `mcp_servers` parameter shape
+- OpenAI API reference: https://platform.openai.com/docs/api-reference/chat — consult for `/chat/completions` request shape and tool_calls format
 - Microsoft Writing Style Guide: https://learn.microsoft.com/en-us/style-guide/welcome/ — consult when editing `prompts/systemPrompt.md`
