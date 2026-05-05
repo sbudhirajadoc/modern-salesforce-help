@@ -43,7 +43,7 @@ modern-salesforce-help/
         └── webview/
             ├── panel.ts          (create/update WebviewPanel, retainContextWhenHidden)
             ├── webview.html      (CSP shell, nonce injected at runtime)
-            └── webviewScript.ts  (bundled separately, runs in Electron browser context)
+            └── webviewScript.tsx (React entry point, bundled separately, runs in Electron browser context)
 ```
 
 ---
@@ -53,11 +53,14 @@ modern-salesforce-help/
 ```json
 {
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0"
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
     "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "typescript": "^5.0.0",
     "esbuild": "^0.20.0",
     "@vscode/vsce": "^2.0.0"
@@ -66,6 +69,8 @@ modern-salesforce-help/
 ```
 
 No `node-fetch` (use built-in `fetch`). No `cheerio` (no scraping). No `express`.
+
+Webview UI uses React (bundled by esbuild — not loaded from CDN). React is a devDependency of the extension, bundled into `dist/webviewScript.js`. The extension host itself stays plain TypeScript with no React dependency.
 
 ---
 
@@ -123,12 +128,13 @@ esbuild.build({
   sourcemap: true,
 });
 
-// Webview bundle — browser context, no Node APIs, no vscode module
+// Webview bundle — browser context, React JSX, no Node APIs, no vscode module
 esbuild.build({
-  entryPoints: ['src/webview/webviewScript.ts'],
+  entryPoints: ['src/webview/webviewScript.tsx'],
   bundle: true,
   outfile: 'dist/webviewScript.js',
   platform: 'browser',
+  jsx: 'automatic',
   sourcemap: true,
 });
 ```
