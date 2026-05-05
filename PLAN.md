@@ -222,6 +222,8 @@ while (iterations < MAX) {
 ### Phase C — parse and validate
 `JSON.parse()` the final message content → validate all 7 keys present → `postMessage` to webview.
 
+On parse failure or missing keys: `postMessage({ type: 'error', message: 'Something went wrong — try again' })`. The webview shows the error with a Retry button that re-fires the original query. No silent retry, no raw text fallback.
+
 ---
 
 ## Loading states
@@ -251,6 +253,8 @@ Now that the pipeline is a multi-iteration loop, more states are observable. Pos
 
 No external sources. `unsafe-inline` for styles only (VS Code theme variables need it). Scripts use nonce.
 
+`navigator.clipboard.writeText()` works inside VS Code webviews without any additional CSP directive — the Electron context grants clipboard access automatically. No `clipboard-write` permission needed.
+
 ---
 
 ## Webview styling
@@ -261,7 +265,20 @@ Local CSS only. VS Code theme variables:
 body { background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); }
 .panel-border { border: 1px solid var(--vscode-panel-border); }
 .button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+pre { background: var(--vscode-textBlockQuote-background); padding: 12px; border-radius: 4px; overflow-x: auto; }
+code { font-family: var(--vscode-editor-font-family); font-size: var(--vscode-editor-font-size); }
 ```
+
+### codeExamples rendering
+
+Each `codeExample` renders as:
+```
+┌─ {label} ──────────────────────── [Copy] ┐
+│  <pre><code>{code}</code></pre>           │
+└───────────────────────────────────────────┘
+```
+
+Copy button calls `navigator.clipboard.writeText(code)` and briefly changes label to "Copied ✓" for 1.5s. No CSP change needed — Electron grants clipboard access in webviews automatically.
 
 ---
 
