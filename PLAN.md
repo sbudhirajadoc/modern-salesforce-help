@@ -398,6 +398,8 @@ html = html.replace(/{{nonce}}/g, nonce).replace('{{scriptUri}}', scriptUri.toSt
 
 ## Webview styling
 
+**Styling approach: custom CSS mimicking SLDS patterns.** No SLDS framework bundled, no CDN. Uses VS Code theme variables so the panel integrates naturally with the IDE (dark/light themes). Salesforce visual patterns (card layout, badge colors, typography scale) are approximated manually. This is intentional — do not switch to bundled SLDS without revisiting the CSP and esbuild config.
+
 Local CSS only. VS Code theme variables:
 
 ```css
