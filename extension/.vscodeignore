@@ -1,0 +1,10 @@
+src/
+node_modules/
+.vscode/
+esbuild.js
+tsconfig.json
+**/*.map
+**/*.ts
+**/*.tsx
+!dist/**
+!media/**

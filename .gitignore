@@ -3,3 +3,4 @@ dist/
 *.vsix
 .env
 .DS_Store
+samples/.sfdx/

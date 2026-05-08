@@ -4,7 +4,7 @@
 
 const SF_BASE_URL = "https://eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl";
 const MCP_URL = "https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp";
-const MODEL = "claude-sonnet-4-5";
+const MODEL = "claude-sonnet-4-6";
 
 const apiKey = process.env.SF_LLM_KEY;
 if (!apiKey) {
@@ -21,7 +21,7 @@ let mcpTools = [];
 try {
   const res = await fetch(MCP_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
   });
   const json = await res.json();
@@ -52,7 +52,7 @@ console.log("\n--- Step 2: Testing Salesforce LLM proxy + manual tool loop (issu
 async function callMcpTool(toolName, args) {
   const res = await fetch(MCP_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream" },
     body: JSON.stringify({
       jsonrpc: "2.0", id: 2, method: "tools/call",
       params: { name: toolName, arguments: args },

@@ -1,0 +1,55 @@
+{
+  "name": "sf-help-copilot",
+  "displayName": "Salesforce Help Copilot",
+  "description": "Contextual Salesforce help in a sidebar panel, driven by your active file and selection.",
+  "version": "0.0.1",
+  "publisher": "sbudhiraja",
+  "engines": { "vscode": "^1.85.0" },
+  "activationEvents": [
+    "onLanguage:apex",
+    "workspaceContains:sfdx-project.json"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sfHelp.generate",
+        "title": "Generate Salesforce Help"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "sfHelp.generate",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Salesforce Help Copilot",
+      "properties": {
+        "sfHelp.sendContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send file and selection context to the AI. Disable to send only your typed query."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.0.0",
+    "esbuild": "^0.20.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
