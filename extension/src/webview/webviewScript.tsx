@@ -91,8 +91,28 @@ function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.Mu
     if (!hasSpeech) return;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(script);
-    utt.rate = 0.9;
     utt.lang = 'en-US';
+    utt.rate = 0.92;   // slightly slower than default — conversational pace
+    utt.pitch = 1.1;   // slightly above neutral — friendly, not robotic
+
+    // Pick the best available female English voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = [
+      'Samantha',       // macOS — natural, warm
+      'Karen',          // macOS Australian — clear and friendly
+      'Moira',          // macOS Irish
+      'Microsoft Aria', // Windows — highest quality female
+      'Google US English Female',
+    ];
+    const voice =
+      preferred.reduce<SpeechSynthesisVoice | null>((found, name) =>
+        found ?? voices.find(v => v.name === name) ?? null, null) ??
+      voices.find(v => /en[-_]US/i.test(v.lang) && v.name.toLowerCase().includes('female')) ??
+      voices.find(v => /en/i.test(v.lang) && v.name.match(/samantha|karen|aria|zira|susan|victoria/i)) ??
+      null;
+
+    if (voice) utt.voice = voice;
+
     utt.onend = () => { speakingRef.current = false; };
     speakingRef.current = true;
     window.speechSynthesis.speak(utt);
