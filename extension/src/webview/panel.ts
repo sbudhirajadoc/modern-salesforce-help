@@ -18,7 +18,10 @@ export function getOrCreatePanel(context: vscode.ExtensionContext): vscode.Webvi
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist')],
+      localResourceRoots: [
+        vscode.Uri.joinPath(context.extensionUri, 'dist'),
+        vscode.Uri.joinPath(context.extensionUri, 'media'),
+      ],
     }
   );
 
@@ -26,7 +29,6 @@ export function getOrCreatePanel(context: vscode.ExtensionContext): vscode.Webvi
 
   panel.onDidDispose(() => { panel = undefined; }, null, context.subscriptions);
 
-  // Forward refine requests from webview to VS Code input box
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
     if (msg.type === 'refine') {
       const refined = await vscode.window.showInputBox({
@@ -36,6 +38,8 @@ export function getOrCreatePanel(context: vscode.ExtensionContext): vscode.Webvi
       if (refined !== undefined) {
         panel?.webview.postMessage({ type: 'refineResult', query: refined });
       }
+    } else if (msg.type === 'retry') {
+      vscode.commands.executeCommand('sfHelp.generate');
     }
   }, null, context.subscriptions);
 
@@ -54,7 +58,14 @@ function buildHtml(webview: vscode.Webview, context: vscode.ExtensionContext): s
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(context.extensionUri, 'dist', 'webviewScript.js')
   );
+  const sldsUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, 'media', 'slds', 'slds2.css')
+  );
 
-  html = html.replace(/{{nonce}}/g, nonce).replace('{{scriptUri}}', scriptUri.toString());
+  html = html
+    .replace(/{{nonce}}/g, nonce)
+    .replace('{{scriptUri}}', scriptUri.toString())
+    .replace('{{sldsUri}}', sldsUri.toString())
+    .replace(/{{webviewCspSource}}/g, webview.cspSource);
   return html;
 }

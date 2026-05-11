@@ -15,31 +15,44 @@ export function activate(context: vscode.ExtensionContext) {
     if (!llmKey) return;
 
     const panel = getOrCreatePanel(context);
-
     postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
-
-    const editorContext = gatherContext();
-
-    try {
-      const helpDoc = await runPipeline({
-        systemPrompt,
-        editorContext,
-        userQuery: '',
-        llmKey,
-        onToolCall: () => postMessage(panel, { type: 'loading', message: 'Reading the docs…' }),
-      });
-      postMessage(panel, { type: 'update', payload: helpDoc });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Something went wrong — try again';
-      postMessage(panel, { type: 'error', message });
-    }
+    await runWithKey(context, llmKey, panel);
   });
 
   context.subscriptions.push(cmd);
-
 }
 
 export function deactivate() {}
+
+async function runWithKey(
+  context: vscode.ExtensionContext,
+  llmKey: string,
+  panel: ReturnType<typeof getOrCreatePanel>
+) {
+  const editorContext = gatherContext();
+  try {
+    const helpDoc = await runPipeline({
+      systemPrompt,
+      editorContext,
+      userQuery: '',
+      llmKey,
+      onToolCall: () => postMessage(panel, { type: 'loading', message: 'Reading the docs…' }),
+    });
+    postMessage(panel, { type: 'update', payload: helpDoc });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Something went wrong — try again';
+    if (message.startsWith('API key rejected')) {
+      await context.secrets.delete('sfHelp.llmKey');
+      const newKey = await getOrPromptKey(context);
+      if (newKey) {
+        postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
+        await runWithKey(context, newKey, panel);
+        return;
+      }
+    }
+    postMessage(panel, { type: 'error', message });
+  }
+}
 
 function loadSystemPrompt(context: vscode.ExtensionContext): string {
   const promptPath = path.join(context.extensionUri.fsPath, 'media', 'systemPrompt.md');

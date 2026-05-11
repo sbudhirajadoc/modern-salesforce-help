@@ -1,4 +1,5 @@
 const esbuild = require('esbuild');
+require('./scripts/copyAssets');
 
 // Extension host — Node.js, vscode is provided by VS Code runtime
 esbuild.build({

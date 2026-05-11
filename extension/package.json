@@ -4,7 +4,9 @@
   "description": "Contextual Salesforce help in a sidebar panel, driven by your active file and selection.",
   "version": "0.0.1",
   "publisher": "sbudhiraja",
-  "engines": { "vscode": "^1.85.0" },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
   "activationEvents": [
     "onLanguage:apex",
     "workspaceContains:sfdx-project.json"
@@ -42,6 +44,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@salesforce-ux/design-system-2": "^2.0.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",

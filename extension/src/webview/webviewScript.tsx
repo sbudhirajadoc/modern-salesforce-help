@@ -52,18 +52,22 @@ function App() {
 
 function IdleView() {
   return (
-    <div style={styles.container}>
-      <p style={styles.muted}>Select Apex code and run <strong>Generate Salesforce Help</strong> to get started.</p>
+    <div className="slds-p-around_medium">
+      <p className="slds-text-color_weak">Select Apex code and run <strong>Generate Salesforce Help</strong> to get started.</p>
     </div>
   );
 }
 
 function LoadingView({ message }: { message: string }) {
   return (
-    <div style={styles.container}>
-      <div style={styles.loadingRow}>
-        <Spinner />
-        <span style={styles.muted}>{message}</span>
+    <div className="slds-p-around_medium">
+      <div className="slds-media slds-media_center">
+        <div className="slds-media__figure">
+          <Spinner />
+        </div>
+        <div className="slds-media__body">
+          <p className="slds-text-color_weak">{message}</p>
+        </div>
       </div>
     </div>
   );
@@ -71,9 +75,10 @@ function LoadingView({ message }: { message: string }) {
 
 function ErrorView({ message }: { message: string }) {
   return (
-    <div style={styles.container}>
-      <div style={{ ...styles.card, borderLeft: '3px solid var(--vscode-errorForeground)' }}>
-        <p style={{ color: 'var(--vscode-errorForeground)', margin: 0 }}>{message}</p>
+    <div className="slds-p-around_medium">
+      <div className="slds-box slds-theme_error slds-p-around_small">
+        <p className="slds-m-bottom_small">{message}</p>
+        <button className="slds-button slds-button_neutral" onClick={() => vscode.postMessage({ type: 'retry' })}>Retry</button>
       </div>
     </div>
   );
@@ -98,35 +103,31 @@ function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.Mu
     speakingRef.current = false;
   }
 
-  function handleRefine() {
-    vscode.postMessage({ type: 'refine' });
-  }
-
   return (
-    <div style={styles.container}>
+    <div className="slds-p-around_medium">
       {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>{doc.title}</h1>
-        <button style={styles.refineBtn} onClick={handleRefine}>Refine ▾</button>
+      <div className="slds-grid slds-grid_align-spread slds-m-bottom_small">
+        <h1 className="slds-text-heading_medium slds-text-color_brand">{doc.title}</h1>
+        <button className="slds-button slds-button_neutral slds-shrink-none" onClick={() => vscode.postMessage({ type: 'refine' })}>Refine ▾</button>
       </div>
 
       {/* Summary */}
-      <p style={styles.summary}>{doc.summary}</p>
+      <p className="slds-text-body_regular slds-m-bottom_medium">{doc.summary}</p>
 
       {/* Audio controls */}
       {hasSpeech && (
-        <div style={styles.audioRow}>
-          <button style={styles.btn} onClick={() => speak(buildSummaryScript(doc))}>▶ Summary</button>
-          <button style={styles.btn} onClick={() => speak(buildWalkthroughScript(doc))}>▶ Walkthrough</button>
-          <button style={styles.btn} onClick={stop}>◼ Stop</button>
+        <div className="slds-button-group slds-m-bottom_medium" role="group">
+          <button className="slds-button slds-button_neutral" onClick={() => speak(buildSummaryScript(doc))}>▶ Summary</button>
+          <button className="slds-button slds-button_neutral" onClick={() => speak(buildWalkthroughScript(doc))}>▶ Walkthrough</button>
+          <button className="slds-button slds-button_neutral" onClick={stop}>◼ Stop</button>
         </div>
       )}
 
       {/* Prerequisites */}
       {doc.prerequisites.length > 0 && (
         <Section title="Prerequisites">
-          <ul style={styles.list}>
-            {doc.prerequisites.map((p, i) => <li key={i}>{p}</li>)}
+          <ul className="slds-list_dotted slds-m-left_medium">
+            {doc.prerequisites.map((p, i) => <li key={i} className="slds-item">{p}</li>)}
           </ul>
         </Section>
       )}
@@ -134,11 +135,11 @@ function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.Mu
       {/* Steps */}
       {doc.steps.length > 0 && (
         <Section title="Steps">
-          <ol style={styles.list}>
+          <ol className="slds-list_ordered slds-m-left_medium">
             {doc.steps.map((s, i) => (
-              <li key={i} style={{ marginBottom: 8 }}>
+              <li key={i} className="slds-item slds-m-bottom_x-small">
                 <strong>{s.label}</strong>
-                <p style={{ margin: '4px 0 0 0' }}>{s.detail}</p>
+                <p className="slds-m-top_xx-small">{s.detail}</p>
               </li>
             ))}
           </ol>
@@ -164,14 +165,14 @@ function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.Mu
       {/* Related links */}
       {doc.relatedLinks.length > 0 && (
         <Section title="Related links">
-          <ul style={styles.list}>
+          <ul className="slds-list_dotted slds-m-left_medium">
             {doc.relatedLinks.map((l, i) => (
-              <li key={i}>
-                <a href={l.url} style={styles.link}>{l.label}</a>
+              <li key={i} className="slds-item">
+                <a href={l.url} className="slds-text-link">{l.label}</a>
               </li>
             ))}
           </ul>
-          <p style={{ ...styles.muted, fontSize: 11, marginTop: 4 }}>Links are AI-generated — verify before use.</p>
+          <p className="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">Links are AI-generated — verify before use.</p>
         </Section>
       )}
     </div>
@@ -182,8 +183,8 @@ function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.Mu
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={styles.section}>
-      <h2 style={styles.sectionTitle}>{title}</h2>
+    <div className="slds-m-bottom_medium slds-p-bottom_medium" style={{ borderBottom: '1px solid var(--slds-g-color-border-base-1, #e5e5e5)' }}>
+      <h2 className="slds-text-title_caps slds-text-color_brand slds-m-bottom_x-small">{title}</h2>
       {children}
     </div>
   );
@@ -202,177 +203,87 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
   }
 
   return (
-    <div style={styles.codeBlock}>
-      <div style={styles.codeHeader}>
-        <span style={styles.codeLabel}>{label}</span>
-        <button style={styles.copyBtn} onClick={copy}>{copied ? 'Copied ✓' : 'Copy'}</button>
+    <div className="slds-box slds-box_x-small slds-m-bottom_small" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="slds-grid slds-grid_align-spread slds-p-horizontal_small slds-p-vertical_xx-small" style={{ background: 'var(--slds-g-color-neutral-base-95, #f3f3f3)', borderBottom: '1px solid var(--slds-g-color-border-base-1, #e5e5e5)' }}>
+        <span className="slds-text-body_small slds-text-color_weak">{label}</span>
+        <button className="slds-button slds-button_neutral slds-button_x-small" onClick={copy}>{copied ? 'Copied ✓' : 'Copy'}</button>
       </div>
-      <pre style={styles.pre}><code>{code}</code></pre>
+      <pre className="slds-p-around_small" style={{ margin: 0, overflowX: 'auto', fontFamily: 'var(--vscode-editor-font-family, monospace)', fontSize: 'var(--vscode-editor-font-size, 13px)', background: 'var(--slds-g-color-neutral-base-95, #f3f3f3)' }}><code>{code}</code></pre>
     </div>
   );
 }
 
 function NoteBlock({ type, body }: { type: 'note' | 'warning' | 'tip'; body: string }) {
-  const colors: Record<string, string> = {
-    warning: 'var(--vscode-editorWarning-foreground, #f0a500)',
-    tip:     'var(--vscode-terminal-ansiGreen, #4caf50)',
-    note:    'var(--vscode-editor-foreground)',
+  const themeMap: Record<string, string> = {
+    warning: 'slds-theme_warning',
+    tip:     'slds-theme_success',
+    note:    'slds-theme_info',
   };
   const labels: Record<string, string> = { warning: '⚠ Warning', tip: '💡 Tip', note: 'ℹ Note' };
 
   return (
-    <div style={{ ...styles.noteBlock, borderLeftColor: colors[type] }}>
-      <strong style={{ color: colors[type] }}>{labels[type]}</strong>
-      <p style={{ margin: '4px 0 0 0' }}>{body}</p>
+    <div className={`slds-box slds-box_x-small slds-m-bottom_x-small ${themeMap[type]}`}>
+      <strong className="slds-m-right_xx-small">{labels[type]}</strong>
+      <span>{body}</span>
     </div>
   );
 }
 
 function Spinner() {
   return (
-    <span style={{
-      display: 'inline-block',
-      width: 14, height: 14,
-      border: '2px solid var(--vscode-panel-border)',
-      borderTopColor: 'var(--vscode-button-background)',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite',
-      marginRight: 8,
-    }} />
+    <div className="slds-spinner slds-spinner_x-small" role="status">
+      <span className="slds-assistive-text">Loading</span>
+      <div className="slds-spinner__dot-a"></div>
+      <div className="slds-spinner__dot-b"></div>
+    </div>
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────
+// ── Dark mode overrides ────────────────────────────────────────────────────
+// SLDS 2 tokens are light-themed. These overrides restore readability in VS Code dark themes.
 
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    padding: '16px',
-    fontFamily: 'var(--vscode-font-family)',
-    fontSize: 'var(--vscode-font-size)',
-    color: 'var(--vscode-editor-foreground)',
-    background: 'var(--vscode-editor-background)',
-    maxWidth: 680,
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 8,
-  },
-  title: {
-    margin: 0,
-    fontSize: 18,
-    fontWeight: 600,
-    color: '#0176D3',
-    flex: 1,
-  },
-  summary: {
-    margin: '0 0 16px',
-    lineHeight: 1.5,
-    color: 'var(--vscode-editor-foreground)',
-  },
-  audioRow: {
-    display: 'flex',
-    gap: 6,
-    marginBottom: 16,
-  },
-  section: {
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottom: '1px solid var(--vscode-panel-border)',
-  },
-  sectionTitle: {
-    margin: '0 0 8px',
-    fontSize: 13,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-    color: '#0176D3',
-  },
-  list: {
-    margin: 0,
-    paddingLeft: 20,
-    lineHeight: 1.6,
-  },
-  codeBlock: {
-    border: '1px solid var(--vscode-panel-border)',
-    borderRadius: 4,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  codeHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '4px 10px',
-    background: 'var(--vscode-textBlockQuote-background)',
-    borderBottom: '1px solid var(--vscode-panel-border)',
-  },
-  codeLabel: {
-    fontSize: 12,
-    color: 'var(--vscode-descriptionForeground)',
-  },
-  pre: {
-    margin: 0,
-    padding: 12,
-    background: 'var(--vscode-textBlockQuote-background)',
-    overflowX: 'auto',
-    fontFamily: 'var(--vscode-editor-font-family)',
-    fontSize: 'var(--vscode-editor-font-size)',
-  },
-  noteBlock: {
-    borderLeft: '3px solid var(--vscode-editor-foreground)',
-    paddingLeft: 10,
-    marginBottom: 10,
-  },
-  btn: {
-    background: 'var(--vscode-button-background)',
-    color: 'var(--vscode-button-foreground)',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '4px 10px',
-    borderRadius: 2,
-    fontSize: 12,
-  },
-  copyBtn: {
-    background: 'transparent',
-    color: 'var(--vscode-descriptionForeground)',
-    border: '1px solid var(--vscode-panel-border)',
-    cursor: 'pointer',
-    padding: '2px 8px',
-    borderRadius: 2,
-    fontSize: 11,
-  },
-  refineBtn: {
-    background: 'transparent',
-    color: 'var(--vscode-descriptionForeground)',
-    border: '1px solid var(--vscode-panel-border)',
-    cursor: 'pointer',
-    padding: '3px 8px',
-    borderRadius: 2,
-    fontSize: 12,
-    whiteSpace: 'nowrap',
-  },
-  link: {
-    color: '#0176D3',
-  },
-  muted: {
-    color: 'var(--vscode-descriptionForeground)',
-    margin: 0,
-  },
-  loadingRow: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-};
+const darkModeOverrides = document.createElement('style');
+darkModeOverrides.textContent = `
+  body {
+    background: var(--vscode-editor-background);
+    color: var(--vscode-editor-foreground);
+  }
+  .slds-text-color_brand { color: #0176D3; }
+  .slds-text-color_weak, .slds-text-body_small { color: var(--vscode-descriptionForeground); }
+  pre, .slds-box { background: var(--vscode-textBlockQuote-background, #2d2d2d); color: var(--vscode-editor-foreground); }
+  .slds-button_neutral {
+    background: var(--vscode-button-secondaryBackground, transparent);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-editor-foreground));
+    border-color: var(--vscode-panel-border);
+  }
+  .slds-theme_error { background: transparent; border-left: 3px solid var(--vscode-errorForeground); color: var(--vscode-errorForeground); }
+`;
+document.head.appendChild(darkModeOverrides);
 
-// Inject spinner keyframe animation
-const style = document.createElement('style');
-style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
-document.head.appendChild(style);
+// ── Error boundary ─────────────────────────────────────────────────────────
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { caught: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { caught: false };
+  }
+  static getDerivedStateFromError() { return { caught: true }; }
+  render() {
+    if (this.state.caught) {
+      return (
+        <div className="slds-p-around_medium">
+          <div className="slds-box slds-theme_error slds-p-around_small">
+            <p className="slds-m-bottom_small">Something went wrong rendering the panel.</p>
+            <button className="slds-button slds-button_neutral" onClick={() => vscode.postMessage({ type: 'retry' })}>Retry</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ── Mount ──────────────────────────────────────────────────────────────────
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<App />);
+root.render(<ErrorBoundary><App /></ErrorBoundary>);
