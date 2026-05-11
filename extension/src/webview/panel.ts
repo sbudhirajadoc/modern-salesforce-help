@@ -5,7 +5,11 @@ import * as crypto from 'crypto';
 
 let panel: vscode.WebviewPanel | undefined;
 
-export function getOrCreatePanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
+export function getOrCreatePanel(
+  context: vscode.ExtensionContext,
+  onRefine: (query: string) => void,
+  onRetry: () => void,
+): vscode.WebviewPanel {
   if (panel) {
     panel.reveal(vscode.ViewColumn.Beside);
     return panel;
@@ -30,16 +34,17 @@ export function getOrCreatePanel(context: vscode.ExtensionContext): vscode.Webvi
   panel.onDidDispose(() => { panel = undefined; }, null, context.subscriptions);
 
   panel.webview.onDidReceiveMessage(async (msg: { type: string }) => {
-    if (msg.type === 'refine') {
-      const refined = await vscode.window.showInputBox({
-        prompt: 'Refine your query',
+    if (msg.type === 'retry') {
+      onRetry();
+    } else if (msg.type === 'refine') {
+      const query = await vscode.window.showInputBox({
+        prompt: 'What do you want to know?',
+        placeHolder: 'e.g. How do I bulkify this trigger?',
         ignoreFocusOut: true,
       });
-      if (refined !== undefined) {
-        panel?.webview.postMessage({ type: 'refineResult', query: refined });
+      if (query?.trim()) {
+        onRefine(query.trim());
       }
-    } else if (msg.type === 'retry') {
-      vscode.commands.executeCommand('sfHelp.generate');
     }
   }, null, context.subscriptions);
 

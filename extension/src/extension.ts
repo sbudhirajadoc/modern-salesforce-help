@@ -6,17 +6,24 @@ import { runPipeline } from './claudePipeline';
 import { getOrCreatePanel, postMessage } from './webview/panel';
 
 let systemPrompt: string;
+let pipelineRunning = false;
 
 export function activate(context: vscode.ExtensionContext) {
   systemPrompt = loadSystemPrompt(context);
 
   const cmd = vscode.commands.registerCommand('sfHelp.generate', async () => {
+    if (pipelineRunning) return;
+
     const llmKey = await getOrPromptKey(context);
     if (!llmKey) return;
 
-    const panel = getOrCreatePanel(context);
-    postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
-    await runWithKey(context, llmKey, panel);
+    const panel = getOrCreatePanel(
+      context,
+      (refinedQuery) => triggerRun(context, panel, refinedQuery),
+      () => triggerRun(context, panel, ''),
+    );
+
+    triggerRun(context, panel, '');
   });
 
   context.subscriptions.push(cmd);
@@ -24,17 +31,32 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
+function triggerRun(
+  context: vscode.ExtensionContext,
+  panel: ReturnType<typeof getOrCreatePanel>,
+  userQuery: string,
+) {
+  if (pipelineRunning) return;
+  getOrPromptKey(context).then(llmKey => {
+    if (!llmKey) return;
+    postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
+    runWithKey(context, llmKey, panel, userQuery);
+  });
+}
+
 async function runWithKey(
   context: vscode.ExtensionContext,
   llmKey: string,
-  panel: ReturnType<typeof getOrCreatePanel>
+  panel: ReturnType<typeof getOrCreatePanel>,
+  userQuery: string,
 ) {
+  pipelineRunning = true;
   const editorContext = gatherContext();
   try {
     const helpDoc = await runPipeline({
       systemPrompt,
       editorContext,
-      userQuery: '',
+      userQuery,
       llmKey,
       onToolCall: () => postMessage(panel, { type: 'loading', message: 'Reading the docs…' }),
     });
@@ -46,11 +68,13 @@ async function runWithKey(
       const newKey = await getOrPromptKey(context);
       if (newKey) {
         postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
-        await runWithKey(context, newKey, panel);
+        await runWithKey(context, newKey, panel, userQuery);
         return;
       }
     }
     postMessage(panel, { type: 'error', message });
+  } finally {
+    pipelineRunning = false;
   }
 }
 
