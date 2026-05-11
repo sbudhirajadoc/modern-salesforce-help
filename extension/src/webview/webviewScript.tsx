@@ -1,7 +1,6 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+import React, { useEffect, useReducer } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelpDoc } from '../../../schema/helpDoc';
-import { buildSummaryScript, buildWalkthroughScript } from './scriptBuilder';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +30,6 @@ const vscode = acquireVsCodeApi();
 
 function App() {
   const [state, dispatch] = useReducer(reducer, { status: 'idle' });
-  const speakingRef = useRef(false);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -45,7 +43,7 @@ function App() {
   if (state.status === 'idle') return <IdleView />;
   if (state.status === 'loading') return <LoadingView message={state.message} />;
   if (state.status === 'error') return <ErrorView message={state.message} />;
-  return <HelpDocView doc={state.doc} speakingRef={speakingRef} />;
+  return <HelpDocView doc={state.doc} />;
 }
 
 // ── Views ──────────────────────────────────────────────────────────────────
@@ -84,45 +82,7 @@ function ErrorView({ message }: { message: string }) {
   );
 }
 
-function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.MutableRefObject<boolean> }) {
-  const hasSpeech = typeof window !== 'undefined' && window.speechSynthesis !== undefined;
-
-  function speak(script: string) {
-    if (!hasSpeech) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(script);
-    utt.lang = 'en-US';
-    utt.rate = 0.92;   // slightly slower than default — conversational pace
-    utt.pitch = 1.1;   // slightly above neutral — friendly, not robotic
-
-    // Pick the best available female English voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = [
-      'Samantha',       // macOS — natural, warm
-      'Karen',          // macOS Australian — clear and friendly
-      'Moira',          // macOS Irish
-      'Microsoft Aria', // Windows — highest quality female
-      'Google US English Female',
-    ];
-    const voice =
-      preferred.reduce<SpeechSynthesisVoice | null>((found, name) =>
-        found ?? voices.find(v => v.name === name) ?? null, null) ??
-      voices.find(v => /en[-_]US/i.test(v.lang) && v.name.toLowerCase().includes('female')) ??
-      voices.find(v => /en/i.test(v.lang) && v.name.match(/samantha|karen|aria|zira|susan|victoria/i)) ??
-      null;
-
-    if (voice) utt.voice = voice;
-
-    utt.onend = () => { speakingRef.current = false; };
-    speakingRef.current = true;
-    window.speechSynthesis.speak(utt);
-  }
-
-  function stop() {
-    window.speechSynthesis?.cancel();
-    speakingRef.current = false;
-  }
-
+function HelpDocView({ doc }: { doc: HelpDoc }) {
   return (
     <div className="slds-p-around_medium">
       {/* Header */}
@@ -133,15 +93,6 @@ function HelpDocView({ doc, speakingRef }: { doc: HelpDoc; speakingRef: React.Mu
 
       {/* Summary */}
       <p className="slds-text-body_regular slds-m-bottom_medium">{doc.summary}</p>
-
-      {/* Audio controls */}
-      {hasSpeech && (
-        <div className="slds-button-group slds-m-bottom_medium" role="group">
-          <button className="slds-button slds-button_neutral" onClick={() => speak(buildSummaryScript(doc))}>▶ Summary</button>
-          <button className="slds-button slds-button_neutral" onClick={() => speak(buildWalkthroughScript(doc))}>▶ Walkthrough</button>
-          <button className="slds-button slds-button_neutral" onClick={stop}>◼ Stop</button>
-        </div>
-      )}
 
       {/* Prerequisites */}
       {doc.prerequisites.length > 0 && (
@@ -217,9 +168,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    }).catch(() => {
-      // Clipboard unavailable — silently ignore
-    });
+    }).catch(() => {});
   }
 
   return (
@@ -260,7 +209,6 @@ function Spinner() {
 }
 
 // ── Dark mode overrides ────────────────────────────────────────────────────
-// SLDS 2 tokens are light-themed. These overrides restore readability in VS Code dark themes.
 
 const darkModeOverrides = document.createElement('style');
 darkModeOverrides.textContent = `
