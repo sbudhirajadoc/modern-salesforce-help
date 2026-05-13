@@ -1,49 +1,45 @@
 # modern-salesforce-help
 
-A VS Code extension that reads editor context (active file, language, selected code) and generates contextual Salesforce help — reformatted, structured, and optionally narrated — in a sidebar panel.
+A VS Code extension that reads editor context (active file, language, selected code) and generates contextual Salesforce help — reformatted and structured — in a sidebar panel.
 
 ## What this is
 
-A developer-facing "Help Copilot" for Salesforce development. When a developer selects Apex code and invokes the command, the extension reads context, calls the Salesforce LLM Gateway Express with a manual MCP tool_use loop, and renders a structured help topic in a sidebar WebviewPanel.
+A developer-facing Help Copilot for Salesforce development. Select Apex code, invoke the command, and the extension calls the Salesforce LLM Gateway with a manual MCP tool_use loop to fetch and reformat official docs into a structured sidebar panel.
 
 ## Current state
 
-Planning complete. Extension not yet scaffolded. Existing files:
-- `prompts/systemPrompt.md` — style rules + JSON output constraint
-- `schema/helpDoc.ts` — TypeScript interface for HelpDoc JSON
-- `PLAN.md` — implementation plan
+**Phase 2 complete.** Extension is fully built, packaged as `.vsix`, and working.
 
-## Architecture (planned)
+## Architecture
 
 ```
 Extension Host (Node.js inside VS Code)
-  ├── contextGatherer.ts     reads file, language, selection, workspace
-  ├── claudePipeline.ts      MCP tool discovery + manual tool_use loop → HelpDoc JSON
-  └── webview/panel.ts       creates/updates the sidebar WebviewPanel
+  ├── extension.ts          activate, command registration, secrets, pipeline orchestration
+  ├── contextGatherer.ts    language, selection, surrounding lines, SFDX detection
+  ├── claudePipeline.ts     MCP tool discovery + manual tool_use loop → HelpDoc JSON
+  └── webview/panel.ts      WebviewPanel lifecycle, refine/retry message handling
 
-Webview (Electron browser context, React)
-  ├── renders HelpDoc JSON using VS Code theme CSS variables
-  ├── scriptBuilder.ts       generates TTS scripts from HelpDoc
-  └── SpeechSynthesis for audio (summary or walkthrough)
+Webview (Electron browser, React 18)
+  ├── webviewScript.tsx     React UI — renders HelpDoc, Refine button, error/loading states
+  └── scriptBuilder.ts      TTS script builder (deferred — kept for Phase 3)
 
 Salesforce LLM Gateway Express (remote, OpenAI-compatible)
-  └── routes to Claude via Bedrock
-      └── calls Salesforce Docs MCP → https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp
+  └── model: claude-sonnet-4-6
+      └── Salesforce Docs MCP → https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp
 ```
 
 ## Key technical decisions
 
-- **VS Code extension, not a web app or LWC** — user can't host a server or deploy; `.vsix` installs locally with no infrastructure
-- **Salesforce LLM Gateway Express, not direct Anthropic API** — Salesforce internal proxy at `eng-ai-model-gateway.sfproxy.devx-preprod.aws-esvc1-useast2.aws.sfdc.cl`; speaks OpenAI-compatible `/chat/completions`; key from Vibes 2.0 → Agent Harness → Express API Key
-- **Manual tool_use loop, not `mcp_servers`** — the Salesforce proxy is OpenAI-compatible, not Anthropic SDK; `mcp_servers` beta param is unavailable; instead: discover MCP tools via `tools/list` POST, expose as OpenAI function definitions, handle tool_calls loop manually (~50 lines)
-- **`context.secrets` for API keys, not `settings.json`** — `settings.json` gets committed to dotfiles repos; `context.secrets` is encrypted per-machine
-- **No SLDS CDN** — VS Code webview CSP blocks external stylesheets by default; relaxing it for a CDN is a security trade-off not worth making; use VS Code theme variables instead
-- **`retainContextWhenHidden: true`** — without this, webview state is destroyed when the panel hides and rebuilds blank on re-show; memory cost is acceptable for a single panel
-- **Activation scoped to Apex + SFDX workspaces** — activating on every workspace wastes resources and surprises non-Salesforce users
+- **Manual tool_use loop** — Salesforce proxy is OpenAI-compatible, not Anthropic SDK; `mcp_servers` param is unavailable; tools discovered via `tools/list` POST, exposed as OpenAI function definitions
+- **`context.secrets` for API key** — never `settings.json`; key from Vibes 2.0 → Agent Harness → Express API Key
+- **SLDS 2 CSS bundled locally** — `@salesforce-ux/design-system-2` copied to `media/slds/slds2.css` at build time; no CDN; CSP uses `webview.cspSource`
+- **`retainContextWhenHidden: true`** — panel state survives hide/show without rehydration
+- **Activation scoped** — `onLanguage:apex` and `workspaceContains:sfdx-project.json` only
+- **Audio removed** — Web Speech API quality was unacceptable; deferred to Phase 3 with real TTS API
 
 ## HelpDoc schema
 
-Source of truth: `schema/helpDoc.ts`. Shape:
+Source of truth: `schema/helpDoc.ts`
 
 ```json
 {
@@ -59,28 +55,24 @@ Source of truth: `schema/helpDoc.ts`. Shape:
 
 ## Style rules
 
-Full rules are in `prompts/systemPrompt.md` — that file is the `system` parameter on every Claude API call, so keep it there. Summary:
-- Verb-first sentences; cut "you can" and "there is/are"
-- Contractions always; sentence-case headings; Oxford comma
-- Bold UI labels; expand every acronym on first use
-- Gender-neutral; no idioms; no slang
+Full rules in `prompts/systemPrompt.md` — passed as the `system` message on every LLM call. Do not duplicate here.
 
 ## Plans
 
 Save plans as `PLAN.md` in this directory. Do not use `~/.claude/plans/`.
 
-## Open questions
+## Resolved questions
 
-- [x] Does the Salesforce Docs MCP server require an auth token? — No. Resolved.
-- [ ] Does the Salesforce LLM Gateway support `{ role: "system" }` in messages array? — Verify in first test run.
-- [ ] Audio: section-level playback only at launch (streaming deferred).
-- [ ] i18n: which languages to support, if any?
+- MCP server auth: not required
+- `{ role: "system" }` support: confirmed working
+- Model alias: `claude-sonnet-4-5` invalid — use `claude-sonnet-4-6`
+- Audio: Web Speech API removed; real TTS deferred to Phase 3
 
 ## References
 
-- `PLAN.md` — current implementation plan, check here before starting work
-- `prompts/systemPrompt.md` — full style rules, read before editing prompts
+- `PLAN.md` — phase roadmap and decisions
+- `prompts/systemPrompt.md` — LLM style rules
+- `schema/helpDoc.ts` — HelpDoc TypeScript interface
 - Salesforce Docs MCP: `https://salesforce-docs-76258744c9d7.herokuapp.com/api/mcp`
-- VS Code Extension API: https://code.visualstudio.com/api — consult for webview, secrets, activation event patterns
-- OpenAI API reference: https://platform.openai.com/docs/api-reference/chat — consult for `/chat/completions` request shape and tool_calls format
-- Microsoft Writing Style Guide: https://learn.microsoft.com/en-us/style-guide/welcome/ — consult when editing `prompts/systemPrompt.md`
+- VS Code Extension API: https://code.visualstudio.com/api
+- OpenAI API reference: https://platform.openai.com/docs/api-reference/chat
