@@ -14,16 +14,19 @@ export function activate(context: vscode.ExtensionContext) {
   const cmd = vscode.commands.registerCommand('sfHelp.generate', async () => {
     if (pipelineRunning) return;
 
+    // CRITICAL: Capture editor context BEFORE showing any UI (which steals focus)
+    const editorContext = gatherContext();
+
     const llmKey = await getOrPromptKey(context);
     if (!llmKey) return;
 
     const panel = getOrCreatePanel(
       context,
-      (refinedQuery) => triggerRun(context, panel, refinedQuery),
-      () => triggerRun(context, panel, ''),
+      (refinedQuery) => triggerRun(context, panel, refinedQuery, editorContext),
+      () => triggerRun(context, panel, '', editorContext),
     );
 
-    triggerRun(context, panel, '');
+    triggerRun(context, panel, '', editorContext);
   });
 
   context.subscriptions.push(cmd);
@@ -35,12 +38,13 @@ function triggerRun(
   context: vscode.ExtensionContext,
   panel: ReturnType<typeof getOrCreatePanel>,
   userQuery: string,
+  editorContext: ReturnType<typeof gatherContext>,
 ) {
   if (pipelineRunning) return;
   getOrPromptKey(context).then(llmKey => {
     if (!llmKey) return;
     postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
-    runWithKey(context, llmKey, panel, userQuery);
+    runWithKey(context, llmKey, panel, userQuery, editorContext);
   });
 }
 
@@ -49,9 +53,9 @@ async function runWithKey(
   llmKey: string,
   panel: ReturnType<typeof getOrCreatePanel>,
   userQuery: string,
+  editorContext: ReturnType<typeof gatherContext>,
 ) {
   pipelineRunning = true;
-  const editorContext = gatherContext();
   try {
     const helpDoc = await runPipeline({
       systemPrompt,
@@ -68,7 +72,7 @@ async function runWithKey(
       const newKey = await getOrPromptKey(context);
       if (newKey) {
         postMessage(panel, { type: 'loading', message: 'Fetching Salesforce help…' });
-        await runWithKey(context, newKey, panel, userQuery);
+        await runWithKey(context, newKey, panel, userQuery, editorContext);
         return;
       }
     }
