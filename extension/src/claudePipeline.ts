@@ -49,7 +49,14 @@ function buildPrompt(ctx: EditorContext | null, userQuery: string): string {
   if (!ctx) return userQuery || 'Search Salesforce docs for general Apex best practices.';
 
   const parts: string[] = [];
-  parts.push(`The developer is working in a ${ctx.language} file: ${ctx.filePath}`);
+  const isLwc = ctx.filePath.includes('/lwc/') || ctx.filePath.includes('\\lwc\\');
+  const fileDesc = isLwc
+    ? `a Lightning Web Component (LWC) file (${ctx.language}): ${ctx.filePath}`
+    : `a ${ctx.language} file: ${ctx.filePath}`;
+  parts.push(`The developer is working in ${fileDesc}`);
+  if (isLwc) {
+    parts.push('This is an LWC component. Prioritize Lightning Web Component documentation over generic JavaScript/HTML documentation.');
+  }
 
   if (ctx.selectedText) {
     parts.push(`\nSelected code:\n${ctx.selectedText}`);
