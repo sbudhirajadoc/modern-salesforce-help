@@ -5,11 +5,9 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'none';
              script-src 'nonce-{{nonce}}';
-             style-src {{webviewCspSource}};
-             font-src {{webviewCspSource}};">
+             style-src 'unsafe-inline';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Salesforce Help</title>
-  <link rel="stylesheet" href="{{sldsUri}}">
 </head>
 <body>
   <div id="root"></div>
