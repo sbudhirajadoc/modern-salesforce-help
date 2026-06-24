@@ -28,6 +28,9 @@
         }
       ]
     },
+    "configurationDefaults": {
+      "editor.codeLens": true
+    },
     "configuration": {
       "title": "Salesforce Help Copilot",
       "properties": {

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { gatherContext } from './contextGatherer';
 import { runPipeline } from './claudePipeline';
 import { getOrCreatePanel, postMessage } from './webview/panel';
+import { registerCodeLensProviders } from './codeLensProvider';
 
 let systemPrompt: string;
 let pipelineRunning = false;
@@ -30,6 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(cmd);
+  registerCodeLensProviders(context);
 }
 
 export function deactivate() {}
