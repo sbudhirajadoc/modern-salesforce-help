@@ -6,7 +6,7 @@
 |-------|-----|--------|---------|
 | Phase 1 | `rollback-to-plan` | ✅ Done | Scaffold + full extension implementation |
 | Phase 2 | `phase-2` | ✅ Done | Verification fixes + SLDS 2 styling + Refine wired up |
-| Phase 3 | — | Planned | CodeLens, streaming, TTS with real API |
+| Phase 3 | `before-codelens` | 🔄 In progress | CodeLens ✅, streaming, TTS with real API |
 
 ---
 
@@ -37,14 +37,15 @@
 
 > Start Phase 3 by creating a git tag `phase-3`.
 
-### Task 1: CodeLens
+### Task 1: CodeLens ✅ Done
 
-Add "⚡ Get Salesforce Help" above every Apex class/trigger declaration.
+Added "⚡ Get Salesforce Help" above Apex class/trigger declarations and LWC `export default class` lines.
 
-- New file: `extension/src/codeLensProvider.ts` implementing `vscode.CodeLensProvider`
-- Scope to class/trigger declarations only (not method lines) — safer regex, fewer false positives
+- `extension/src/codeLensProvider.ts` — two `vscode.CodeLensProvider` instances: one for `apex`, one for `javascript` with an `lwcOnly` path guard (prevents false positives in non-SFDX JS files)
 - Each CodeLens fires existing `sfHelp.generate` command — no new pipeline needed
-- Register in `extension.ts`: `vscode.languages.registerCodeLensProvider({ language: 'apex' }, ...)`
+- Registered in `extension.ts` via `registerCodeLensProviders(context)`
+- `TESTING.md` — 20 manual test cases covering CodeLens, pipeline regression, and edge cases
+- Checkpoint tag: `before-codelens`
 
 ### Task 2: Streaming
 

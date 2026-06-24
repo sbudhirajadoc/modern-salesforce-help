@@ -1,12 +1,12 @@
 # Salesforce Help Copilot
 
-A VS Code extension that reads your active Apex file and selection, fetches the relevant official Salesforce documentation, and renders a structured help panel — right where you're coding.
+A VS Code extension that reads your active Apex or LWC file and selection, fetches the relevant official Salesforce documentation, and renders a structured help panel — right where you're coding.
 
 ---
 
 ## What it does
 
-Select any Apex code, right-click, and choose **Generate Salesforce Help**. The extension:
+Click **⚡ Get Salesforce Help** above any Apex class, trigger, or LWC component — or select code, right-click, and choose **Generate Salesforce Help**. The extension:
 
 1. Captures your editor context (language, file path, selected code, surrounding lines)
 2. Sends it to Claude via the Salesforce LLM Gateway
@@ -28,11 +28,16 @@ Use the **Refine** button to ask a follow-up question — e.g. "How do I bulkify
 ## Demo
 
 ```
-1. Open any Apex file in an SFDX project
-2. Select some code (e.g. a SOQL query, a trigger body)
-3. Right-click → Generate Salesforce Help
-4. Panel opens with structured docs for the detected feature
-5. Click Refine to ask a follow-up
+Option A — CodeLens (most discoverable):
+1. Open any Apex or LWC file in an SFDX project
+2. Click ⚡ Get Salesforce Help above the class or trigger declaration
+3. Panel opens with structured docs for the detected feature
+4. Click Refine to ask a follow-up
+
+Option B — Right-click:
+1. Select specific code (e.g. a SOQL query, a trigger body, a @wire decorator)
+2. Right-click → Generate Salesforce Help
+3. Panel opens scoped to your selection
 ```
 
 ---
@@ -61,12 +66,13 @@ On first run, the extension prompts you for the key and stores it securely in VS
 
 | Action | How |
 |--------|-----|
+| Generate help via CodeLens | Click **⚡ Get Salesforce Help** above a class, trigger, or LWC component declaration |
 | Generate help for selected code | Select code → right-click → **Generate Salesforce Help** |
 | Ask a follow-up question | Click **Refine ▾** in the panel → type your question |
 | Retry after an error | Click **Retry** in the error panel |
 | Disable context sending | Set `sfHelp.sendContext: false` in settings |
 
-The command only appears in the right-click menu when you have an active selection.
+The right-click command only appears when you have an active selection. CodeLens is always visible on declaration lines and does not require a selection — position your cursor inside the class body first for the most relevant context.
 
 ---
 
@@ -74,10 +80,11 @@ The command only appears in the right-click menu when you have an active selecti
 
 ```
 Extension Host (Node.js / VS Code)
-  ├── extension.ts          Activation, command, secrets, pipeline orchestration
-  ├── contextGatherer.ts    Captures language, file, selection (max 3000 chars), SFDX detection
-  ├── claudePipeline.ts     MCP tool discovery (cached) + manual tool_use loop → HelpDoc JSON
-  └── webview/panel.ts      WebviewPanel lifecycle, Refine/Retry callbacks
+  ├── extension.ts            Activation, command, secrets, pipeline orchestration
+  ├── codeLensProvider.ts     ⚡ CodeLens on Apex class/trigger + LWC export default class
+  ├── contextGatherer.ts      Captures language, file, selection (max 3000 chars), SFDX detection
+  ├── claudePipeline.ts       MCP tool discovery (cached) + manual tool_use loop → HelpDoc JSON
+  └── webview/panel.ts        WebviewPanel lifecycle, Refine/Retry callbacks
 
 Webview (Electron renderer, React 18)
   └── webviewScript.tsx     UI — renders HelpDoc, handles loading/error/idle states
@@ -146,6 +153,7 @@ The build runs `esbuild` to bundle the extension host and React webview into `di
 extension/
   src/
     extension.ts              Entry point
+    codeLensProvider.ts       CodeLens for Apex + LWC
     contextGatherer.ts        Editor context capture
     claudePipeline.ts         LLM + MCP orchestration
     webview/
@@ -162,7 +170,8 @@ schema/
   helpDoc.ts                  HelpDoc TypeScript interface (source of truth)
 prompts/
   systemPrompt.md             LLM style rules
-samples/                      Sample Apex files for manual testing
+samples/                      Sample Apex and LWC files for manual testing
+TESTING.md                    Manual test plan (20 cases)
 ```
 
 ---
@@ -173,7 +182,7 @@ samples/                      Sample Apex files for manual testing
 |-------|--------|-------|
 | Phase 1 | Done | Scaffold, pipeline, webview, SLDS styling |
 | Phase 2 | Done | Verification fixes, Refine button wired up |
-| Phase 3 | Planned | CodeLens on class/trigger declarations, streaming responses, real TTS API |
+| Phase 3 | In progress | CodeLens ✅, streaming responses, real TTS API |
 
 Deferred (post-Phase 3): snippet insertion into editor, "Explain this code" mode (no doc lookup), response caching, Marketplace publish.
 
