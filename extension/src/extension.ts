@@ -94,10 +94,10 @@ async function getOrPromptKey(context: vscode.ExtensionContext): Promise<string 
   if (existing) return existing;
 
   const key = await vscode.window.showInputBox({
-    prompt: 'Enter your Salesforce LLM Gateway key (Vibes 2.0 → Agent Harness → Express API Key)',
+    prompt: 'Enter your Salesforce LLM Gateway key — find it in DevBar → Express LLM Gateway → Authentication Token',
     password: true,
     ignoreFocusOut: true,
-    placeHolder: 'Paste your key here',
+    placeHolder: 'Paste your sk-... token here',
   });
 
   if (key?.trim()) {
